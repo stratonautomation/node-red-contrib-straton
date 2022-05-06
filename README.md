@@ -26,14 +26,14 @@ Install using the managed palette from inside Node-RED.
 
 ### - Straton Read
 
-Connect to a WebSocket and subscribe to one or several straton variables.
+Connects to a WebSocket and subscribe to one or several straton variables.
 
 ![read.png](./docs/images/read.png)
 
 
 ### - Straton Write
 
-Connect to a WebSocket and write value of a straton variable.
+Connects to a WebSocket and write value of a straton variable.
 Each time a message is coming in, the configured variable will be written
 
 ![write.png](./docs/images/write.png)
@@ -41,7 +41,7 @@ Each time a message is coming in, the configured variable will be written
 
 ### - Straton Websocket
 
-Connect to a WebSocket and subscribe to one or several straton variables.
+Connects to a WebSocket and subscribe to one or several straton variables.
 Additionally, it can send other commands when a message is coming in.
 
 There will be an output for each subscribed variable.
