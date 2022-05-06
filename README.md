@@ -21,6 +21,7 @@ Install using the managed palette from inside Node-RED.
 * run `npm install node-red-contrib-ctrlx-automation --save`
 
 
+
 ## Usage - Quick Overview
 
 ### - Straton Read
@@ -66,6 +67,7 @@ Each node has it's own help/documentation available in the help window.
 A more complete user guide is available [here](./docs/straton_user_guide_Node_Red_Rev2.pdf)
 
 
+
 ## Licenses
 
 MIT License
@@ -89,6 +91,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
 
 
 ## About
