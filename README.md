@@ -72,7 +72,7 @@ A more complete user guide is available [here](./docs/straton_user_guide_Node_Re
 
 MIT License
 
-Copyright (c) 2022 StratonAutomation
+Copyright (c) 2022 Straton Automation
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
