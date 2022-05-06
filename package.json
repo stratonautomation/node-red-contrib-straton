@@ -1,0 +1,40 @@
+{
+  "name": "@straton/node-red-contrib-straton",
+  "version": "0.1.0",
+  "description": "Node-RED nodes for Straton Websocket",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StratonAutomation/node-red-contrib-straton"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "request": ">=2.72.0",
+    "ws": "3.3.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": {
+    "name": "Straton Automation",
+    "url": "https://straton-plc.com"
+  },
+  "keywords": [
+	"node-red",
+	"websocket", 
+	"straton",
+	"dataserver",
+	"data-server",
+	"zenon",
+	"copa-data",
+	"www.straton-plc.com",
+	"www.copadata.com"
+	],
+  "node-red": {
+    "nodes": {
+      "stratoncmd": "stratoncmd.js",
+	  "stratonread": "stratonread.js",
+	  "stratonwrite": "stratonwrite.js",
+	  "stratonws": "stratonws.js"
+    }
+  }
+}

@@ -1,0 +1,195 @@
+<script type="text/html" data-template-name="straton command">
+    <div class="form-row">
+        <label for="node-input-command"><i class="fa fa-tasks"></i> Command</label>
+        <select id="node-input-command" style="width:270px !important">
+            <option value="write2">Write Value</option>
+            <option value="status2">Get Runtime Status</option>
+            <option value="list2">Get Variable List</option>
+            <option value="read2">Read Value</option>
+        </select>
+    </div>
+    <div id="variable-details" class="form-row">
+        <label for="node-input-variable"><i class="fa fa-server"></i> Variable</label>
+        <input type="text" id="node-input-variable" style="width: 70%" />
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+
+<script type="text/javascript">
+(function() {
+    
+    function stratoncmd_oneditprepare() {
+        var node = this;
+
+        if (this.command == "status2") {
+            $("#node-input-command").val('status2');
+            $("#variable-details").hide();
+        } else if (this.command == "list2") {
+            $("#node-input-command").val('list2');
+            $("#variable-details").hide();
+        } else if (this.command == "write2") {
+            $("#node-input-command").val('write2');
+        } else if (this.command == "read2") {
+            $("#node-input-command").val('read2');
+        }
+        
+        $("#node-input-variable").typedInput({
+            default: this.variableType || 'app',
+            types:[
+              {
+                  value: "app",
+                  label: "app.",
+                  hasValue: true
+              },
+              {
+                  value: "sys",
+                  label: "sys.",
+                  options: ["appName", "appVersion", "cycleTime", "cycleMax", "cycleOverflows", "cycleCount"]
+              },
+              {
+                  value: "oem",
+                  label: "oem.",
+                  hasValue: true
+              }
+            ]
+        });
+
+        $("#node-input-command").on("change", function () {
+            var cmd = $("#node-input-command").val();
+            if (cmd === "status2") {
+                $("#variable-details").hide();
+            } else if (cmd === "list2") {
+                $("#variable-details").hide();
+            } else if (cmd === "write2") {
+                $("#variable-details").show();
+            } else if (cmd === "read2") {
+                $("#variable-details").show();
+            }
+        }).trigger("change");
+        
+    }
+
+
+    function stratoncmd_oneditsave() {
+        
+        this.command = $("#node-input-command").val();
+
+        this.variable = $("#node-input-variable").typedInput('value');
+        this.variableType = $("#node-input-variable").typedInput('type');
+    }
+
+
+    
+    RED.nodes.registerType('straton command', {
+        color: "#038FC7",
+        category: 'straton',
+        defaults: {
+            name: { value: "" },
+            command: { value: "write2", required: true },
+            variable: {
+                value: "", validate: function (v) {
+                    var cmd = $("#node-input-command").val();
+                    if ((cmd == "write2") || (cmd == "read2")) {
+                        return (v !== "");
+                    }
+                    else {
+                        return true;
+                    }
+                }
+            },
+            variableType: { value: "app" }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "white-sign-in.png",
+        label: function () {
+            if (this.name) {
+                return this.name;
+            }
+            if (this.command == "write2") {
+                return "Write " + this.variableType + "." + this.variable;
+            } else if (this.command == "list2") {
+                return "Get variable list";
+            } else if (this.command == "status2") {
+                return "Get Status";
+            } else if (this.command == "read2") {
+                return "Read " + this.variableType + "." + this.variable;
+            }
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: stratoncmd_oneditprepare,
+        oneditsave: stratoncmd_oneditsave
+    });
+})();
+</script>
+
+<script type="text/html" data-help-name="straton command">
+    <p>Builds a command to be sent to the straton websocket node.</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>
+            payload
+            <span class="property-type">number | string</span>
+        </dt>
+        <dd> A number or string representing the value in case of a Write command. </dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <ol class="node-ports">
+        <dl class="message-properties">
+            <dt>
+                payload
+                <span class="property-type">object</span>
+            </dt>
+            <dd> Command to be sent to the straton websocket node </dd>
+            <dt>
+                StatusCode
+                <span class="property-type">number</span>
+            </dt>
+            <dd> Error code if the command cannot be built. </dd>
+        </dl>
+    </ol>
+
+    <h3>Details</h3>
+    <p>
+        The input msg is used as a trigger to send output.
+        Additionally, if the command is a Write, the input <code>msg.payload</code> should contain the value in string or number format.
+        In other case, the input <code>msg.payload</code> is not used.
+    </p>
+    <ul>
+        <li>
+            <code>Command</code> is the type of command to be generated.
+        </li>
+        <li>
+            <code>Variable</code> to read or write to.
+
+            Each straton variable name has the following format:
+            <ul>
+                <li>app.xxxx for straton variables</li>
+                <li>sys.xxxx for runtime variables (like straton application name)</li>
+                <li>oem.xxxx for oem variables (like Linux os version)</li>
+            </ul>
+            All the variable names are case insensitive
+        </li>
+    </ul>
+    <p>
+        <b>Note:</b>
+        The field 'Variable' appears only if the command is Write or Read.
+    </p>
+    <p>
+        <b>Note:</b>
+        -	As the node does not connect to the WebSocket, it cannot retrieve variable list. Auto-completion is not available for this node.
+    </p>
+    <p>
+        <b>Note:</b>
+        If the variable name is left blank, for Read or Write command, the node cannot be deployed.
+    </p>
+</script>

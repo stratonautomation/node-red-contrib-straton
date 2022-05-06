@@ -1,0 +1,341 @@
+<script type="text/html" data-template-name="straton websocket">
+    <div class="form-row">
+        <label for="node-input-address"><i class="fa fa-globe"></i> URL</label>
+        <input type="text" id="node-input-address" placeholder="Adress">
+        <a id="node-input-lookup-variables" class="red-ui-button"><i id="node-input-lookup-variables-icon" class="fa fa-search"></i></a>
+    </div>
+    <div class="form-tips"><b>Tip:</b> Deploy the node after inserting the node or changing the URL. Hit the <i class="fa fa-search"></i> button to get the list of variables from the straton data-server</div>
+    <div class="form-row node-input-sub-container-row">
+        <ol id="node-input-sub-container"></ol>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+
+<script type="text/javascript">
+(function () {
+    function stratonws_oneditprepare() {
+        var node = this;
+
+        node.varlist = [];      //Variable list
+
+        var timerGetVarList;   //timer used to get the satus when retrieving variable list
+
+        this.outputs = this.subs.length + 1;
+
+        function resizeSub(sub) {
+            var newWidth = sub.width();
+            var valueField = sub.find(".node-input-sub-value");
+            valueField.typedInput("width",(newWidth-60-70));
+        }
+
+
+        $("#node-input-sub-container").css('min-height', '80px').css('min-width', '450px').editableList({
+            addItem: function(container,i,opt) {
+                if (!opt.hasOwnProperty('r')) {
+                    opt.r = ""; //Empty value at creation
+                }
+                var sub = opt.r;
+
+                if (!opt.hasOwnProperty('i')) {
+                    opt._i = Math.floor((0x99999-0x10000)*Math.random()).toString();
+                }
+                container.css({
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap'
+                });
+                var row = $('<div/>').appendTo(container);
+
+                function createValueField() {
+                    return $('<input/>', { class: "node-input-sub-value", type: "text", style: "margin-left: 5px;" }).appendTo(row).autocomplete({
+                        source: node.varlist,
+                        minLength: 0,
+                        close: function (event, ui) {
+                            //$("#node-config-input-serialport").autocomplete("destroy");
+                        }
+                    }).autocomplete("search", "");
+                }
+
+                var valueField = null;
+
+                var finalspan = $('<span/>',{style:"float: right;margin-top: 6px;"}).appendTo(row);
+                finalspan.append(' &#8594; <span class="node-input-sub-index">' + (i + 1) + '</span> ');
+
+
+                if (!valueField){
+                    valueField = createValueField();
+                }
+
+                valueField.val(sub);
+
+                resizeSub(container);
+            },
+            removeItem: function(opt) {
+            },
+            resizeItem: resizeSub,
+            sortItems: function(subs) {
+            },
+            sortable: false,
+            removable: true
+        });
+
+        var varName;
+        for (var i = 0; i < this.subs.length; i++) {
+            varName = this.subs[i];
+            $("#node-input-sub-container").editableList('addItem', { r: varName, i: i });
+        }
+
+        $("#node-input-sub-container").editableList('height', 40);
+
+        //click on the button to get the variable list
+        $("#node-input-lookup-variables").click(function () {
+            $('#node-input-lookup-variables-icon').removeClass("fa fa-search"); //Hide the search icon
+            $('#node-input-lookup-variables-icon').addClass("fa fa-spinner fa-spin"); //Show the spinner icon. the fa-spin after makes the icon spin
+            $("#node-input-lookup-variables").addClass('disabled');
+
+
+            timerGetVarList = setInterval(function () {
+
+                var remoteUrl = $("#node-input-address").val();
+                var parsedUrl = remoteUrl;
+                if (remoteUrl.indexOf("ws://") === 0)
+                    parsedUrl = remoteUrl.substring(5);
+                else if (remoteUrl.indexOf("wss://") === 0)
+                    parsedUrl = remoteUrl.substring(6);
+
+                // Get the list of variables from the node itself
+                $.ajax({
+                    url: "stratonvarlist/" + node.id + "/" + parsedUrl,
+                    type: "POST",
+                    success: function (response) {
+
+                        if (response.status === -1) {   // There is an error
+                            $('#node-input-lookup-variables-icon').removeClass("fa fa-spinner fa-spin");
+                            $('#node-input-lookup-variables-icon').addClass("fa fa-search");
+                            $("#node-input-lookup-variables").removeClass('disabled');
+
+                            clearInterval(timerGetVarList); //Stop timer
+                        } else if (response.status === 1) { // Request is completed
+                            $('#node-input-lookup-variables-icon').removeClass("fa fa-spinner fa-spin");
+                            $('#node-input-lookup-variables-icon').addClass("fa fa-search");
+                            $("#node-input-lookup-variables").removeClass('disabled');
+
+                            //Fill the local variable lists with the response
+                            node.varlist = [];
+
+                            for (var i = 0; i < response.data.length; i++) {
+                                node.varlist.push("app." + response.data[i].toLowerCase());
+                            }
+
+                            //add sys variables 
+                            node.varlist.push("sys.appname");
+                            node.varlist.push("sys.appversion");
+                            node.varlist.push("sys.cycletime");
+                            node.varlist.push("sys.cyclemax");
+                            node.varlist.push("sys.cycleOverflows");
+
+                            node.varlist.sort();
+
+                            var subs = $("#node-input-sub-container").editableList('items');
+                            subs.each(function (i) {
+                                var sub = $(this);
+                                sub.find(".node-input-sub-value").autocomplete({
+                                    source: node.varlist
+                                });
+
+                            });
+
+                            clearInterval(timerGetVarList); //Stop timer
+                        }
+                    }
+                });
+
+            }, 500);    //Every 500 ms
+
+        });
+    }
+
+
+    function stratonws_oneditsave() {
+        var subs = $("#node-input-sub-container").editableList('items');
+        var node = this;
+        node.subs = [];
+
+        subs.each(function(i) {
+            var ruleData = $(this).data('data');
+            var sub = $(this);
+            var value = sub.find(".node-input-sub-value").val();
+            if (value !== "") {
+                node.subs.push(value);
+
+            }
+        });
+
+        this.outputs = node.subs.length + 1;
+    }
+
+    function stratonws_oneditcancel() {
+        var subs = $("#node-input-sub-container").editableList('items');
+        var node = this;
+        node.subs = [];
+
+        subs.each(function (i) {
+            var ruleData = $(this).data('data');
+            var sub = $(this);
+            var value = sub.find(".node-input-sub-value").val();
+            if (value !== "") {
+                node.subs.push(value);
+            }
+        });
+
+        this.outputs = node.subs.length + 1;
+    }
+
+    function stratonws_oneditresize(size) {
+        var rows = $("#dialog-form>div:not(.node-input-sub-container-row)");
+        var height = size.height;
+        for (var i=0;i<rows.length;i++) {
+            height -= $(rows[i]).outerHeight(true);
+        }
+        var editorRow = $("#dialog-form>div.node-input-sub-container-row");
+        height -= (parseInt(editorRow.css("marginTop"))+parseInt(editorRow.css("marginBottom")));
+        height += 16;
+        $("#node-input-sub-container").editableList('height',height);
+    }
+
+
+    RED.nodes.registerType('straton websocket', {
+        color: "#038FC7",
+        category: 'straton',
+        defaults: {
+            name: {value:""},
+            address: { value: "ws://192.168.1.13:8000", required: true },
+            subs: { value: "" },
+            outputs: {value:1}
+        },
+        inputs: 1,
+        outputs: 1,
+        outputLabels: function (index) {
+            var label = "";
+
+            if (index < this.subs.length) {
+                var sub = this.subs[index];
+                if (sub) {
+                    label = sub;
+                }
+            }
+            else {
+                label = "Standard";
+            }
+
+            
+            return label;
+        },
+        icon: "white-globe.png",
+        label: function () {
+            return this.name || "straton websocket";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: stratonws_oneditprepare,
+        oneditsave: stratonws_oneditsave,
+        oneditresize: stratonws_oneditresize,
+        oneditcancel: stratonws_oneditcancel
+    });
+})();
+</script>
+
+<script type="text/html" data-help-name="straton websocket">
+    <p>
+        Connects to a straton WebSocket and subscribes to one or several straton variables.
+        Additionally, it can send other commands when a message is coming in.
+    </p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>
+            payload
+            <span class="property-type">object | string</span>
+        </dt>
+        <dd> A JavaScript object or JSON string representing the command to send to the straton data-server. </dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <p>
+        <ul>
+            <li>
+                <b>0 to n:</b> straton variables to read.
+            </li>
+            <li>
+                <b>n+1:</b> standard output, result for other commands.
+            </li>
+        </ul>
+    </p>
+
+    <ol class="node-ports">
+        <p><b>For each output:</b></p>
+
+        <dl class="message-properties">
+            <dt>
+                cmd
+                <span class="property-type">string</span>
+            </dt>
+            <dd> Command of the message received from the WebSocket. </dd>
+            <dt>
+                payload
+                <span class="property-type">object | string</span>
+            </dt>
+            <dd> value received from the WebSocket. </dd>
+            <dt>
+                StatusCode
+                <span class="property-type">number</span>
+            </dt>
+            <dd> The status code of the response, or the error code if the request could not be completed. </dd>
+        </dl>
+    </ol>
+
+    <h3>Details</h3>
+    <p>
+        Each time the value of a variable is changed, a message with value will be sent on the corresponding output.
+
+        For other command coming from the input, the result of the command will be sent to the last output (standard).
+    </p>
+    <ul>
+        <li>
+            <code>URL</code> is the url of the straton websocket to connect to.
+        </li>
+        <li>
+            <code>List of variables</code> to subscribe to.
+
+            Each straton variable name has the following format:
+            <ul>
+                <li>app.xxxx for straton variables</li>
+                <li>sys.xxxx for runtime variables (like straton application name)</li>
+                <li>oem.xxxx for oem variables (like Linux os version)</li>
+            </ul>
+            All the variable names are case insensitive
+        </li>
+    </ul>
+
+    <p>
+        <b>Note:</b>
+        If the node is deployed and an URL has been given, it tries to connect to the WebSocket.
+    </p>
+    <p>
+        <b>Note:</b>
+        If the node is deployed and an URL has been given, you can click on the search button to get the list of variables available on the straton runtime.
+    </p>
+    <p>
+        <b>Note:</b>
+        An auto-completion will then be available as you type the variable name.
+    </p>
+    <p>
+        <b>Note:</b>
+        If a variable name is left blank, the corresponding output won't be created.
+    </p>
+
+</script>

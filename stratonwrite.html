@@ -1,0 +1,185 @@
+<script type="text/html" data-template-name="straton write">
+    <div class="form-row">
+        <label for="node-input-address"><i class="fa fa-globe"></i> URL</label>
+        <input type="text" id="node-input-address" placeholder="Adress">
+        <a id="node-input-lookup-variables" class="red-ui-button"><i id="node-input-lookup-variables-icon" class="fa fa-search"></i></a>
+    </div>
+    <div id="variable-details" class="form-row">
+        <label for="node-input-variable"><i class="fa fa-server"></i> Variable</label>
+        <input type="text" id="node-input-variable" style="width: 70%" />
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-tips"><b>Tip:</b> Deploy the node after inserting the node or changing the URL. Hit the <i class="fa fa-search"></i> button to get the list of variables from the straton data-server</div>
+</script>
+
+
+<script type="text/javascript">
+(function() {
+    function stratoncmd_oneditprepare() {
+        var node = this;
+
+        node.varlist = [];      //Variable list
+
+        var timerGetVarList;   //timer used to get the satus when retrieving variable list
+
+
+        $("#node-input-variable").autocomplete({
+            source: node.varlist,
+            minLength: 0,
+            close: function (event, ui) {
+                //$("#node-config-input-serialport").autocomplete("destroy");
+            }
+        }).autocomplete("search", "");
+
+
+        //click on the button to get the variable list
+        $("#node-input-lookup-variables").click(function () {
+            $('#node-input-lookup-variables-icon').removeClass("fa fa-search"); //Hide the search icon
+            $('#node-input-lookup-variables-icon').addClass("fa fa-spinner fa-spin"); //Show the spinner icon. the fa-spin after makes the icon spin
+            $("#node-input-lookup-variables").addClass('disabled');
+
+            timerGetVarList = setInterval(function () {
+
+                var remoteUrl = $("#node-input-address").val();
+                var parsedUrl = remoteUrl;
+                if (remoteUrl.indexOf("ws://") === 0)
+                    parsedUrl = remoteUrl.substring(5);
+                else if (remoteUrl.indexOf("wss://") === 0)
+                    parsedUrl = remoteUrl.substring(6);
+
+                // Get the list of variables from the node itself
+                $.ajax({
+                    url: "stratonvarlist/" + node.id + "/" + parsedUrl,
+                    type: "POST",
+                    success: function (response) {
+                        if (response.status === -1) {   // There is an error
+                            $('#node-input-lookup-variables-icon').removeClass("fa fa-spinner fa-spin");
+                            $('#node-input-lookup-variables-icon').addClass("fa fa-search");
+                            $("#node-input-lookup-variables").removeClass('disabled');
+
+                            clearInterval(timerGetVarList); //Stop timer
+                        } else if (response.status === 1) { // Request is completed
+                            $('#node-input-lookup-variables-icon').removeClass("fa fa-spinner fa-spin");
+                            $('#node-input-lookup-variables-icon').addClass("fa fa-search");
+                            $("#node-input-lookup-variables").removeClass('disabled');
+
+                            //Fill the local variable lists with the response
+                            node.varlist = [];
+
+                            for (var i = 0; i < response.data.length; i++) {
+                                node.varlist.push("app." + response.data[i].toLowerCase());
+                            }
+
+                            //DO NOT ADD sys variables as ther are read only
+                            
+                            node.varlist.sort();
+
+
+                            $("#node-input-variable").autocomplete({
+                                source: node.varlist
+                            });
+
+                            clearInterval(timerGetVarList); //Stop timer
+                        }
+                    }
+                });
+
+            }, 500);    //Every 500 ms
+
+        });
+    }
+
+
+    function stratoncmd_oneditsave() {
+        this.variable = $("#node-input-variable").val();
+    }
+
+
+    
+    RED.nodes.registerType('straton write', {
+        color: "#038FC7",
+        category: 'straton',
+        defaults: {
+            address: { value: "ws://192.168.1.13:8000", required: true },
+            name: { value: "" },
+            variable: {
+                value: "", validate: function (v) {
+                        return (v !== "");
+                }
+            }
+        },
+        inputs: 1,
+        outputs: 0,
+        icon: "white-sign-in.png",
+        label: function () {
+            if (this.name) {
+                return this.name;
+            }
+            return "Write " + this.variable;
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: stratoncmd_oneditprepare,
+        oneditsave: stratoncmd_oneditsave
+    });
+})();
+</script>
+
+<script type="text/html" data-help-name="straton write">
+    <p>Connects to a straton WebSocket and writes value of a straton variable.</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>
+            payload
+            <span class="property-type">number | string</span>
+        </dt>
+        <dd> A number or string representing the value of the variable. </dd>
+    </dl>
+
+
+    <h3>Details</h3>
+
+    <p>
+        <code>msg.payload</code> is used as the value in case of a Write command.
+        If it contains a number it will be converted to a JSON string.
+        If it contains a string, it will be used as-is.
+    </p>
+
+    <ul>
+        <li>
+            <code>URL</code> is the url of the straton websocket to connect to.
+        </li>
+        <li>
+            <code>Variable</code> to write to.
+
+            Each straton variable name has the following format:
+
+            app.xxxx for straton variables
+
+            All the variable names are case insensitive
+        </li>
+    </ul>
+    <p>
+        <b>Note:</b>
+        If the node is deployed and an URL has been given, it tries to connect to the WebSocket.
+    </p>
+    <p>
+        <b>Note:</b>
+        If the node is deployed and an URL has been given, you can click on the search button to get the list of variables available on the straton runtime.
+    </p>
+    <p>
+        <b>Note:</b>
+        An auto-completion will then be available as you type the variable name.
+    </p>
+    <p>
+        <b>Note:</b>
+        If the variable name is left blank, the node cannot be deployed.
+    </p>
+
+</script>
