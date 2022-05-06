@@ -13,12 +13,12 @@ Install using the managed palette from inside Node-RED.
 
 ### In Node-RED (preferred)
 
-* Via **Manage Palette** -> **Search** for `node-red-contrib-ctrlx-automation`
+* Via **Manage Palette** -> **Search** for `node-red-contrib-straton`
 
 ### In a shell
 
 * go to the Node-RED user data directory, e.g.: `~/.node-red`
-* run `npm install node-red-contrib-ctrlx-automation --save`
+* run `npm install node-red-contrib-straton --save`
 
 
 
