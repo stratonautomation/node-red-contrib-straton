@@ -25,4 +25,4 @@ Install using the managed palette from inside Node-RED.
 
 Connect to a WebSocket and subscribe to one or several straton variables.
 
-![read.png](./doc/images/read.png)
+![read.png](./docs/images/read.png)
