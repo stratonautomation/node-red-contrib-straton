@@ -1,5 +1,5 @@
 {
-  "name": "@straton/node-red-contrib-straton",
+  "name": "@stratonautomation/node-red-contrib-straton",
   "version": "0.1.0",
   "description": "Node-RED nodes for Straton Websocket",
   "repository": {
